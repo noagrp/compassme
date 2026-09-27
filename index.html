@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1118">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CompassMe">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>CompassMe</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1118;--card:#141d27;--line:#263443;--text:#f4f7fa;--muted:#91a2b4;--accent:#73d6c6;--danger:#ff8c8c}
@@ -151,6 +158,7 @@ function renderAll(){renderPins();renderTrips();renderHistory();renderStorage()}
 function clearType(type,label){if(confirm('Delete all CompassMe '+label+'? This cannot be undone.')){data[type]=[];save()}}
 $('clearHistory').onclick=()=>clearType('history','history');$('clearTrips').onclick=()=>clearType('trips','trips');$('clearPins').onclick=()=>clearType('pins','pins');
 load();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'))}
 </script>
 </body>
 </html>
