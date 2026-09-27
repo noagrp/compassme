@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1118">
+<title>CompassMe</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1118;--card:#141d27;--line:#263443;--text:#f4f7fa;--muted:#91a2b4;--accent:#73d6c6;--danger:#ff8c8c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#172534,var(--bg) 42%);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+button,input{font:inherit}button{color:inherit}.app{max-width:620px;margin:auto;min-height:100vh;padding:calc(18px + env(safe-area-inset-top)) 16px calc(90px + env(safe-area-inset-bottom))}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}h1{font-size:22px;margin:0}.status{font-size:12px;color:var(--muted)}
+.view{display:none}.view.on{display:block}.card{background:rgba(20,29,39,.88);border:1px solid var(--line);border-radius:22px;padding:18px;margin:12px 0;backdrop-filter:blur(10px)}
+.compass{width:min(82vw,360px);aspect-ratio:1;border:2px solid #536577;border-radius:50%;margin:28px auto;position:relative;background:radial-gradient(circle,#182531 0 53%,#101821 54%);box-shadow:0 16px 60px #0007}
+.rose{position:absolute;inset:12px;border-radius:50%;transition:transform .12s linear}.dir{position:absolute;font-weight:700}.n{top:7px;left:50%;transform:translateX(-50%);color:var(--accent)}.s{bottom:7px;left:50%;transform:translateX(-50%)}.e{right:9px;top:50%;transform:translateY(-50%)}.w{left:9px;top:50%;transform:translateY(-50%)}
+.needle{position:absolute;left:50%;top:17%;height:66%;width:3px;background:linear-gradient(var(--accent) 0 48%,#73808d 48%);transform:translateX(-50%);border-radius:4px}.needle:after{content:"";position:absolute;width:13px;height:13px;border-radius:50%;background:white;left:50%;top:50%;transform:translate(-50%,-50%)}
+.heading{text-align:center;font-size:38px;font-weight:750}.sub{text-align:center;color:var(--muted);margin-top:3px}.btn{border:1px solid var(--line);background:#1a2734;padding:12px 16px;border-radius:14px;cursor:pointer}.btn.primary{background:var(--accent);color:#07110f;border:0;font-weight:700}.btn.danger{color:var(--danger)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{padding:13px;background:#101820;border-radius:14px}.metric span{display:block;color:var(--muted);font-size:12px}.metric strong{display:block;margin-top:4px;font-size:16px;word-break:break-word}
+input{width:100%;background:#0f1720;border:1px solid var(--line);color:var(--text);padding:12px;border-radius:12px}.list{display:grid;gap:8px}.item{background:#101820;border-radius:14px;padding:13px;display:flex;align-items:center;justify-content:space-between;gap:10px}.item small{display:block;color:var(--muted);margin-top:3px}.empty{color:var(--muted);text-align:center;padding:24px 8px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0c131beF;border-top:1px solid var(--line);padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));display:flex;justify-content:center;gap:4px;backdrop-filter:blur(12px)}
+nav button{border:0;background:none;color:var(--muted);padding:9px 12px;border-radius:12px}nav button.on{color:var(--text);background:#1a2734}.notice{font-size:13px;color:var(--muted);line-height:1.45}.storagebar{height:8px;background:#0c131b;border-radius:9px;overflow:hidden;margin:9px 0}.storagebar i{display:block;height:100%;background:var(--accent);width:0}.targetArrow{font-size:70px;text-align:center;line-height:1.1;transition:transform .15s}.targetName{text-align:center;font-size:20px;font-weight:700}
+@media(max-width:380px){nav button{padding:9px 8px;font-size:12px}.grid{grid-template-columns:1fr}.app{padding-left:12px;padding-right:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>CompassMe</h1><div class="status" id="sensorStatus">Ready</div></header>
+
+<section class="view on" data-view="compass">
+ <div class="compass"><div class="rose" id="rose"><span class="dir n">N</span><span class="dir e">E</span><span class="dir s">S</span><span class="dir w">W</span><i class="needle"></i></div></div>
+ <div class="heading"><span id="heading">--</span>°</div><div class="sub" id="headingName">Compass waiting</div>
+ <div class="actions" style="justify-content:center"><button class="btn primary" id="enableCompass">Enable compass</button></div>
+</section>
+
+<section class="view" data-view="me">
+ <div class="card"><h2>Where am I?</h2><div class="grid">
+  <div class="metric"><span>Latitude</span><strong id="lat">--</strong></div><div class="metric"><span>Longitude</span><strong id="lon">--</strong></div>
+  <div class="metric"><span>Accuracy</span><strong id="accuracy">--</strong></div><div class="metric"><span>Altitude</span><strong id="altitude">--</strong></div>
+  <div class="metric"><span>Speed</span><strong id="speed">--</strong></div><div class="metric"><span>Updated</span><strong id="updated">--</strong></div>
+ </div><div class="actions"><button class="btn primary" id="locate">Locate me</button><button class="btn" id="copyCoords">Copy coordinates</button><button class="btn" id="savePin">Save as pin</button></div></div>
+ <div class="card"><h3>Recent location history</h3><div id="historyMini" class="list"></div></div>
+</section>
+
+<section class="view" data-view="pins">
+ <div class="card"><h2>Pins & Target</h2><input id="pinName" maxlength="40" placeholder="Pin name, e.g. Car"><p class="notice">Locate yourself first, then save the current position. Tap Target on a saved pin to point CompassMe toward it.</p></div>
+ <div id="pinsList" class="list"></div>
+ <div class="card" id="targetCard" hidden><div class="targetName" id="targetName"></div><div class="targetArrow" id="targetArrow">↑</div><div class="heading" id="targetDistance">--</div><div class="sub" id="targetBearing">--</div><div class="actions" style="justify-content:center"><button class="btn" id="stopTarget">Stop target</button></div></div>
+</section>
+
+<section class="view" data-view="backtrack">
+ <div class="card"><h2>Backtrack</h2><p class="notice">Start a trip and CompassMe will remember route points on this device. End the trip to save it. Nothing is uploaded.</p>
+ <div class="actions"><button class="btn primary" id="startTrip">Start trip</button><button class="btn" id="endTrip" disabled>End & save</button></div><p id="tripStatus" class="notice">No active trip.</p></div>
+ <div id="tripsList" class="list"></div>
+</section>
+
+<section class="view" data-view="storage">
+ <div class="card"><h2>Local Data</h2><div id="storageText">Calculating…</div><div class="storagebar"><i id="storageFill"></i></div>
+ <p class="notice">This is CompassMe's browser-local data, not your phone, computer, HDD or SSD storage. CompassMe does not automatically delete your saved data.</p>
+ <div class="grid"><div class="metric"><span>Pins</span><strong id="pinCount">0 / 500</strong></div><div class="metric"><span>History</span><strong id="historyCount">0 / 2000</strong></div><div class="metric"><span>Trips</span><strong id="tripCount">0 / 100</strong></div><div class="metric"><span>Per trip</span><strong>2000 points</strong></div></div>
+ </div>
+ <div class="card"><h3>Manage</h3><div class="actions"><button class="btn danger" id="clearHistory">Clear history</button><button class="btn danger" id="clearTrips">Clear trips</button><button class="btn danger" id="clearPins">Clear pins</button></div></div>
+</section>
+</div>
+
+<nav>
+<button class="on" data-go="compass">🧭<br>Compass</button><button data-go="me">📍<br>Me</button><button data-go="pins">🎯<br>Pins</button><button data-go="backtrack">↩<br>Backtrack</button><button data-go="storage">☰<br>Data</button>
+</nav>
+
+<script>
+const LIMITS={pins:500,history:2000,trips:100,points:2000,bytes:2*1024*1024};
+const KEY='compassme.v1';
+let data={pins:[],history:[],trips:[]},pos=null,heading=null,target=null,trip=null,watchId=null;
+const $=id=>document.getElementById(id);
+function load(){try{data=Object.assign(data,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){} renderAll()}
+function bytes(){return new Blob([JSON.stringify(data)]).size}
+function save(){
+ const size=bytes();
+ if(size>LIMITS.bytes){alert("CompassMe local storage is almost full. Please remove some CompassMe history, trips or pins before saving more.");return false}
+ try{localStorage.setItem(KEY,JSON.stringify(data));renderAll();return true}catch(e){alert("CompassMe can't save more data. The browser storage available to CompassMe may be full. Delete some CompassMe records and try again.");return false}
+}
+function dirName(d){return ['N','NE','E','SE','S','SW','W','NW'][Math.round(((d%360)+360)%360/45)%8]}
+function fmtTime(t){return new Date(t).toLocaleString()}
+function switchView(name){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.dataset.view===name));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===name))}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>switchView(b.dataset.go));
+
+function applyHeading(h){heading=(h+360)%360;$('heading').textContent=Math.round(heading);$('headingName').textContent=dirName(heading);$('rose').style.transform='rotate('+(-heading)+'deg)';updateTarget()}
+function orientation(e){let h=e.webkitCompassHeading;if(h==null&&e.alpha!=null)h=360-e.alpha;if(h!=null)applyHeading(h)}
+async function enableCompass(){
+ try{
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){if(await DeviceOrientationEvent.requestPermission()!=='granted')throw 0}
+  window.addEventListener('deviceorientationabsolute',orientation,true);window.addEventListener('deviceorientation',orientation,true);$('sensorStatus').textContent='Compass active';$('enableCompass').textContent='Compass enabled'
+ }catch(e){$('sensorStatus').textContent='Compass unavailable';alert('Compass permission was not available. Location features can still work.')}
+}
+$('enableCompass').onclick=enableCompass;
+
+function getLocation(addHistory=true){
+ return new Promise((resolve,reject)=>{
+  if(!navigator.geolocation){alert('Geolocation is not supported by this browser.');return reject()}
+  navigator.geolocation.getCurrentPosition(p=>{setPosition(p,addHistory);resolve(p)},e=>{alert('Unable to get your location. Check browser location permission.');reject(e)},{enableHighAccuracy:true,timeout:15000,maximumAge:3000})
+ })
+}
+function setPosition(p,addHistory){
+ const c=p.coords;pos={lat:c.latitude,lon:c.longitude,accuracy:c.accuracy,altitude:c.altitude,speed:c.speed,time:p.timestamp||Date.now()};
+ $('lat').textContent=pos.lat.toFixed(6);$('lon').textContent=pos.lon.toFixed(6);$('accuracy').textContent=Math.round(pos.accuracy)+' m';$('altitude').textContent=pos.altitude==null?'Unavailable':Math.round(pos.altitude)+' m';$('speed').textContent=pos.speed==null?'Unavailable':(pos.speed*3.6).toFixed(1)+' km/h';$('updated').textContent=new Date(pos.time).toLocaleTimeString();
+ if(addHistory){if(data.history.length>=LIMITS.history){alert('CompassMe history is full (2,000 entries). Delete some history before saving more.')}else{data.history.unshift({lat:pos.lat,lon:pos.lon,t:Date.now(),a:Math.round(pos.accuracy)});save()}}
+ if(trip) addTripPoint(pos);updateTarget()
+}
+$('locate').onclick=()=>getLocation(true);
+$('copyCoords').onclick=()=>{if(!pos)return alert('Locate yourself first.');navigator.clipboard.writeText(pos.lat.toFixed(6)+', '+pos.lon.toFixed(6));};
+$('savePin').onclick=()=>saveCurrentPin();
+
+function saveCurrentPin(){
+ if(!pos)return alert('Locate yourself first.');
+ if(data.pins.length>=LIMITS.pins)return alert('CompassMe Pins are full (500). Delete a pin before saving another.');
+ const name=$('pinName').value.trim()||'Saved location '+(data.pins.length+1);data.pins.unshift({id:Date.now(),name,lat:pos.lat,lon:pos.lon,t:Date.now()});if(save()){$('pinName').value='';switchView('pins')}
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function renderPins(){
+ $('pinsList').innerHTML=data.pins.length?data.pins.map(p=>'<div class="item"><div><strong>'+esc(p.name)+'</strong><small>'+p.lat.toFixed(5)+', '+p.lon.toFixed(5)+' · '+fmtTime(p.t)+'</small></div><div class="actions"><button class="btn" onclick="setTarget('+p.id+')">Target</button><button class="btn danger" onclick="deletePin('+p.id+')">×</button></div></div>').join(''):'<div class="empty">No saved pins yet.</div>'
+}
+window.setTarget=id=>{target=data.pins.find(p=>p.id===id);$('targetCard').hidden=false;updateTarget();if(!pos)getLocation(false)};
+window.deletePin=id=>{data.pins=data.pins.filter(p=>p.id!==id);if(target&&target.id===id){target=null;$('targetCard').hidden=true}save()};
+$('stopTarget').onclick=()=>{target=null;$('targetCard').hidden=true};
+function bearing(a,b){const p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,d=(b.lon-a.lon)*Math.PI/180;return(Math.atan2(Math.sin(d)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(d))*180/Math.PI+360)%360}
+function distance(a,b){const R=6371000,p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lon-a.lon)*Math.PI/180,x=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function updateTarget(){if(!target||!pos)return;const b=bearing(pos,target),d=distance(pos,target);$('targetName').textContent=target.name;$('targetDistance').textContent=d<1000?Math.round(d)+' m':(d/1000).toFixed(2)+' km';$('targetBearing').textContent=Math.round(b)+'° '+dirName(b);$('targetArrow').style.transform='rotate('+((heading==null?b:b-heading))+'deg)'}
+
+function startTrip(){
+ if(data.trips.length>=LIMITS.trips)return alert('CompassMe Trips are full (100). Delete a trip before starting another.');
+ trip={id:Date.now(),start:Date.now(),points:[]};$('startTrip').disabled=true;$('endTrip').disabled=false;$('tripStatus').textContent='Trip recording…';
+ watchId=navigator.geolocation.watchPosition(p=>setPosition(p,false),()=>{}, {enableHighAccuracy:true,maximumAge:3000,timeout:15000})
+}
+function addTripPoint(p){if(!trip||trip.points.length>=LIMITS.points)return;const q={lat:p.lat,lon:p.lon,t:Date.now()};const last=trip.points.at(-1);if(!last||distance(last,q)>=5||q.t-last.t>=15000){trip.points.push(q);$('tripStatus').textContent='Trip recording · '+trip.points.length+' points'}}
+function endTrip(){
+ if(watchId!=null)navigator.geolocation.clearWatch(watchId);watchId=null;if(!trip)return;
+ trip.end=Date.now();if(trip.points.length){data.trips.unshift(trip);save()}trip=null;$('startTrip').disabled=false;$('endTrip').disabled=true;$('tripStatus').textContent='No active trip.';renderTrips()
+}
+$('startTrip').onclick=startTrip;$('endTrip').onclick=endTrip;
+function tripDistance(t){let d=0;for(let i=1;i<t.points.length;i++)d+=distance(t.points[i-1],t.points[i]);return d}
+function renderTrips(){$('tripsList').innerHTML=data.trips.length?data.trips.map(t=>{const d=tripDistance(t);return '<div class="item"><div><strong>'+fmtTime(t.start)+'</strong><small>'+(d<1000?Math.round(d)+' m':(d/1000).toFixed(2)+' km')+' · '+t.points.length+' points</small></div><button class="btn danger" onclick="deleteTrip('+t.id+')">×</button></div>'}).join(''):'<div class="empty">No saved trips yet.</div>'}
+window.deleteTrip=id=>{data.trips=data.trips.filter(t=>t.id!==id);save()};
+
+function renderHistory(){$('historyMini').innerHTML=data.history.slice(0,5).map(h=>'<div class="item"><div><strong>'+h.lat.toFixed(5)+', '+h.lon.toFixed(5)+'</strong><small>'+fmtTime(h.t)+' · ±'+h.a+' m</small></div></div>').join('')||'<div class="empty">No history yet.</div>'}
+function renderStorage(){const b=bytes(),pct=Math.min(100,b/LIMITS.bytes*100);$('storageText').textContent=(b/1024).toFixed(1)+' KB used · CompassMe safety limit 2 MB';$('storageFill').style.width=pct+'%';$('pinCount').textContent=data.pins.length+' / '+LIMITS.pins;$('historyCount').textContent=data.history.length+' / '+LIMITS.history;$('tripCount').textContent=data.trips.length+' / '+LIMITS.trips}
+function renderAll(){renderPins();renderTrips();renderHistory();renderStorage()}
+function clearType(type,label){if(confirm('Delete all CompassMe '+label+'? This cannot be undone.')){data[type]=[];save()}}
+$('clearHistory').onclick=()=>clearType('history','history');$('clearTrips').onclick=()=>clearType('trips','trips');$('clearPins').onclick=()=>clearType('pins','pins');
+load();
+</script>
+</body>
+</html>
